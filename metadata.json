@@ -1,0 +1,7 @@
+{
+  "name": "Copy of FoodSafe HACCP Manager",
+  "description": "A comprehensive web-based HACCP management system for food and feed production, featuring AI-assisted hazard analysis, CCP monitoring, and automated documentation compliance.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
