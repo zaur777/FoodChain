@@ -135,6 +135,22 @@ const App: React.FC = () => {
     }
   }, []);
 
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      const origin = event.origin;
+      if (!origin.endsWith('.run.app') && !origin.includes('localhost')) {
+        return;
+      }
+      
+      if (event.data?.type === 'OAUTH_AUTH_SUCCESS') {
+        const { company: newCompany } = event.data;
+        handleLogin(newCompany);
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [handleLogin]);
+
   const handleDeletePlan = async (id: string | null) => {
     if (!id || !company) return;
     if (window.confirm(t.confirmDelete)) {

@@ -944,20 +944,51 @@ const PlanEditor: React.FC<PlanEditorProps> = ({ plans, selectedPlanId, onUpdate
                         helperText="Principle 4 (Who)"
                       />
                       
-                      <div className="md:col-span-1 space-y-2">
+                      <div className="md:col-span-1 space-y-4">
                         <MaterialMultiSelect 
                           label={t.associatedMaterials}
                           materials={currentPlan.materials}
                           selectedIds={ccp.associatedMaterialIds || []}
-                          onChange={ids => onUpdatePlan({...currentPlan, ccps: currentPlan.ccps.map(c => c.id === ccp.id ? {...c, associatedMaterialIds: ids} : c)})}
+                          onChange={ids => updateHazardMaterials(ccp.hazardId, ids)}
                           onSuggest={() => handleSuggestMaterials(ccp.hazardId)}
                           isSuggesting={isSuggestingMaterials === ccp.hazardId}
                           helperText="Linkage to Material Registry"
                         />
-                        {hasAllergenicMaterials && (
-                          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 border border-amber-100 rounded-lg text-[10px] text-amber-700 font-bold">
-                            <ICONS.Alert />
-                            Notice: Linked materials contain allergens. Ensure cleaning validation.
+                        
+                        {associatedMaterials.length > 0 && (
+                          <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 space-y-3">
+                            <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+                              Material Impact Summary
+                            </h5>
+                            <div className="space-y-2">
+                              {associatedMaterials.map(m => (
+                                <div key={m.id} className="text-[11px] bg-white p-2 rounded-lg border border-slate-100 shadow-sm">
+                                  <div className="flex justify-between items-start mb-1">
+                                    <span className="font-bold text-slate-800">{m.name}</span>
+                                    <span className="text-[8px] font-black uppercase text-slate-400">{m.type}</span>
+                                  </div>
+                                  <div className="grid grid-cols-2 gap-2 text-[9px] text-slate-500">
+                                    <div>
+                                      <span className="font-bold text-slate-400 uppercase mr-1">Storage:</span>
+                                      {m.storageConditions || 'N/A'}
+                                    </div>
+                                    <div>
+                                      <span className="font-bold text-slate-400 uppercase mr-1">Allergens:</span>
+                                      {m.allergens.length > 0 ? (
+                                        <span className="text-amber-600 font-bold">{m.allergens.join(', ')}</span>
+                                      ) : 'None'}
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                            {hasAllergenicMaterials && (
+                              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 border border-amber-100 rounded-lg text-[10px] text-amber-700 font-bold">
+                                <ICONS.Alert />
+                                Notice: Linked materials contain allergens. Ensure cleaning validation.
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>

@@ -5,6 +5,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
+import { OAuth2Client } from "google-auth-library";
 
 dotenv.config();
 
@@ -18,9 +19,26 @@ const pool = new Pool({
   ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : false,
 });
 
+const getGoogleClient = (origin: string) => {
+  const redirectUri = `${origin}/auth/google/callback`;
+  return new OAuth2Client(
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET,
+    redirectUri
+  );
+};
+
 async function initDb() {
   try {
     await pool.query(`
+      CREATE TABLE IF NOT EXISTS companies (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        email TEXT UNIQUE NOT NULL,
+        plan TEXT DEFAULT 'Small',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
       CREATE TABLE IF NOT EXISTS haccp_plans (
         id TEXT,
         company_id TEXT,
@@ -43,6 +61,70 @@ async function startServer() {
   app.use(express.json({ limit: '50mb' }));
 
   await initDb();
+
+  // Auth Routes
+  app.get("/api/auth/google/url", (req, res) => {
+    const origin = req.headers.origin || (process.env.APP_URL || "http://localhost:3000");
+    const client = getGoogleClient(origin);
+    const url = client.generateAuthUrl({
+      access_type: "offline",
+      scope: [
+        "https://www.googleapis.com/auth/userinfo.profile",
+        "https://www.googleapis.com/auth/userinfo.email",
+      ],
+    });
+    res.json({ url });
+  });
+
+  app.get("/auth/google/callback", async (req, res) => {
+    const { code } = req.query;
+    const origin = `${req.protocol}://${req.get('host')}`;
+    const client = getGoogleClient(origin);
+
+    try {
+      const { tokens } = await client.getToken(code as string);
+      client.setCredentials(tokens);
+
+      const userInfoResponse = await client.request({
+        url: "https://www.googleapis.com/oauth2/v3/userinfo",
+      });
+
+      const { sub, name, email } = userInfoResponse.data as any;
+
+      // Upsert company
+      const result = await pool.query(
+        `INSERT INTO companies (id, name, email) 
+         VALUES ($1, $2, $3) 
+         ON CONFLICT (email) DO UPDATE SET name = $2
+         RETURNING *`,
+        [sub, name, email]
+      );
+
+      const company = result.rows[0];
+
+      res.send(`
+        <html>
+          <body>
+            <script>
+              if (window.opener) {
+                window.opener.postMessage({ 
+                  type: 'OAUTH_AUTH_SUCCESS', 
+                  company: ${JSON.stringify(company)} 
+                }, '*');
+                window.close();
+              } else {
+                window.location.href = '/';
+              }
+            </script>
+            <p>Authentication successful. This window should close automatically.</p>
+          </body>
+        </html>
+      `);
+    } catch (err) {
+      console.error("Google OAuth error:", err);
+      res.status(500).send("Authentication failed");
+    }
+  });
 
   // API Routes
   app.get("/api/plans", async (req, res) => {
