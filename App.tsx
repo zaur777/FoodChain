@@ -29,20 +29,13 @@ const App: React.FC = () => {
     }
   });
 
-  const [plans, setPlans] = useState<HACCPPlan[]>(() => {
-    try {
-      const saved = localStorage.getItem('haccp_plans_v2');
-      return saved ? JSON.parse(saved) : INITIAL_PLANS;
-    } catch (e) {
-      console.error("Plans parse error", e);
-      return INITIAL_PLANS;
-    }
-  });
+  const [plans, setPlans] = useState<HACCPPlan[]>([]);
+  const [isLoadingPlans, setIsLoadingPlans] = useState(false);
 
   const [isPendingCreate, setIsPendingCreate] = useState(false);
 
   const [activeTab, setActiveTab] = useState<'dashboard' | 'team' | 'materials' | 'flowchart' | 'analysis' | 'monitoring' | 'worksheet' | 'alerts' | 'manual'>('dashboard');
-  const [selectedPlanId, setSelectedPlanId] = useState<string | null>(plans[0]?.id || null);
+  const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
 
   const t = translations[lang];
 
@@ -53,16 +46,49 @@ const App: React.FC = () => {
   useEffect(() => {
     if (company) {
       localStorage.setItem('company_auth', JSON.stringify(company));
+      fetchPlans(company.id);
     } else {
       localStorage.removeItem('company_auth');
+      setPlans([]);
+      setSelectedPlanId(null);
     }
   }, [company]);
 
-  useEffect(() => {
-    localStorage.setItem('haccp_plans_v2', JSON.stringify(plans));
-  }, [plans]);
+  const fetchPlans = async (companyId: string) => {
+    setIsLoadingPlans(true);
+    try {
+      const response = await fetch(`/api/plans?companyId=${companyId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setPlans(data.length > 0 ? data : INITIAL_PLANS);
+        if (data.length > 0 && !selectedPlanId) {
+          setSelectedPlanId(data[0].id);
+        } else if (data.length === 0 && INITIAL_PLANS.length > 0) {
+          setSelectedPlanId(INITIAL_PLANS[0].id);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to fetch plans", error);
+      setPlans(INITIAL_PLANS);
+    } finally {
+      setIsLoadingPlans(false);
+    }
+  };
 
-  const handleCreatePlan = useCallback((defaultName?: string) => {
+  const savePlanToServer = async (plan: HACCPPlan) => {
+    if (!company) return;
+    try {
+      await fetch('/api/plans', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ companyId: company.id, plan }),
+      });
+    } catch (error) {
+      console.error("Failed to save plan", error);
+    }
+  };
+
+  const handleCreatePlan = useCallback(async (defaultName?: string) => {
     const name = window.prompt(t.enterPlanName, defaultName || t.newPlanName);
     if (!name || name.trim() === '') return null;
 
@@ -82,8 +108,9 @@ const App: React.FC = () => {
     setPlans(prev => [...prev, newPlan]);
     setSelectedPlanId(newPlan.id);
     setActiveTab('analysis'); 
+    await savePlanToServer(newPlan);
     return newPlan.id;
-  }, [t]);
+  }, [t, company]);
 
   useEffect(() => {
     if (company && isPendingCreate) {
@@ -99,18 +126,23 @@ const App: React.FC = () => {
     }
   }, []);
 
-  const handleDeletePlan = (id: string | null) => {
-    if (!id) return;
+  const handleDeletePlan = async (id: string | null) => {
+    if (!id || !company) return;
     if (window.confirm(t.confirmDelete)) {
-      setPlans(prev => {
-        const updated = prev.filter(p => p.id !== id);
-        if (selectedPlanId === id) {
-          const nextPlan = updated.length > 0 ? updated[0].id : null;
-          setSelectedPlanId(nextPlan);
-          if (!nextPlan) setActiveTab('dashboard');
-        }
-        return updated;
-      });
+      try {
+        await fetch(`/api/plans/${id}?companyId=${company.id}`, { method: 'DELETE' });
+        setPlans(prev => {
+          const updated = prev.filter(p => p.id !== id);
+          if (selectedPlanId === id) {
+            const nextPlan = updated.length > 0 ? updated[0].id : null;
+            setSelectedPlanId(nextPlan);
+            if (!nextPlan) setActiveTab('dashboard');
+          }
+          return updated;
+        });
+      } catch (error) {
+        console.error("Failed to delete plan", error);
+      }
     }
   };
 
@@ -130,6 +162,7 @@ const App: React.FC = () => {
 
   const updatePlan = (updatedPlan: HACCPPlan) => {
     setPlans(prev => prev.map(p => p.id === updatedPlan.id ? updatedPlan : p));
+    savePlanToServer(updatedPlan);
   };
 
   if (!company) {
