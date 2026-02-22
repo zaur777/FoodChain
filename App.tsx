@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { HACCPPlan, Language, Company } from './types';
 import { INITIAL_PLANS, ICONS } from './constants';
+import { INDUSTRY_TEMPLATES } from './templates';
 import { translations } from './translations';
 import Dashboard from './components/Dashboard';
 import PlanEditor from './components/PlanEditor';
@@ -88,8 +89,16 @@ const App: React.FC = () => {
     }
   };
 
-  const handleCreatePlan = useCallback(async (defaultName?: string) => {
-    const name = window.prompt(t.enterPlanName, defaultName || t.newPlanName);
+  const handleCreatePlan = useCallback(async (templateKey?: string) => {
+    let defaultName = t.newPlanName;
+    let templateData: Partial<HACCPPlan> = {};
+
+    if (templateKey && INDUSTRY_TEMPLATES[templateKey]) {
+      templateData = INDUSTRY_TEMPLATES[templateKey];
+      defaultName = (t.industries as any)[templateKey] || templateData.name || t.newPlanName;
+    }
+
+    const name = window.prompt(t.enterPlanName, defaultName);
     if (!name || name.trim() === '') return null;
 
     const newPlan: HACCPPlan = {
@@ -97,12 +106,12 @@ const App: React.FC = () => {
       name: name.trim(),
       status: 'Draft',
       createdAt: new Date().toISOString(),
-      team: [],
-      materials: [],
-      products: [],
-      flowSteps: [],
-      hazards: [],
-      ccps: []
+      team: templateData.team || [],
+      materials: templateData.materials || [],
+      products: templateData.products || [],
+      flowSteps: templateData.flowSteps || [],
+      hazards: templateData.hazards || [],
+      ccps: templateData.ccps || []
     };
     
     setPlans(prev => [...prev, newPlan]);
@@ -248,7 +257,7 @@ const App: React.FC = () => {
               plans={plans} 
               onSelectPlan={handleSelectPlan} 
               onDeletePlan={handleDeletePlan}
-              onCreatePlan={() => handleCreatePlan()}
+              onCreatePlan={(key) => handleCreatePlan(key)}
               lang={lang}
             />
           ) : activeTab === 'manual' ? (

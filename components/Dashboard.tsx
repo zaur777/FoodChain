@@ -1,7 +1,8 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { HACCPPlan, Language } from '../types';
 import { ICONS } from '../constants';
+import { INDUSTRY_TEMPLATES } from '../templates';
 import { translations } from '../translations';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -9,11 +10,12 @@ interface DashboardProps {
   plans: HACCPPlan[];
   onSelectPlan: (id: string) => void;
   onDeletePlan: (id: string) => void;
-  onCreatePlan: () => void;
+  onCreatePlan: (templateKey?: string) => void;
   lang: Language;
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ plans, onSelectPlan, onDeletePlan, onCreatePlan, lang }) => {
+  const [showTemplates, setShowTemplates] = useState(false);
   const t = translations[lang];
   const activePlans = plans.filter(p => p.status === 'Active');
   const totalHazards = plans.reduce((acc, p) => acc + p.hazards.length, 0);
@@ -67,15 +69,52 @@ const Dashboard: React.FC<DashboardProps> = ({ plans, onSelectPlan, onDeletePlan
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Create New Card */}
-            <button 
-              onClick={onCreatePlan}
-              className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50 hover:bg-white hover:border-indigo-400 hover:shadow-md transition-all group min-h-[140px]"
-            >
-              <div className="bg-white p-3 rounded-full shadow-sm text-slate-400 group-hover:text-indigo-600 mb-3 transition-colors">
-                <ICONS.Plus />
+            <div className="flex flex-col gap-2">
+              <button 
+                onClick={() => onCreatePlan()}
+                className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50 hover:bg-white hover:border-indigo-400 hover:shadow-md transition-all group min-h-[140px] w-full"
+              >
+                <div className="bg-white p-3 rounded-full shadow-sm text-slate-400 group-hover:text-indigo-600 mb-3 transition-colors">
+                  <ICONS.Plus />
+                </div>
+                <span className="font-bold text-slate-500 group-hover:text-slate-800 transition-colors">{t.newPlanName}</span>
+              </button>
+              
+              <button 
+                onClick={() => setShowTemplates(!showTemplates)}
+                className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-indigo-100 bg-indigo-50 text-indigo-600 text-xs font-black uppercase tracking-widest hover:bg-indigo-100 transition-all"
+              >
+                <ICONS.Sparkles />
+                {t.createFromTemplate}
+              </button>
+            </div>
+
+            {showTemplates && (
+              <div className="md:col-span-2 bg-indigo-50/50 p-6 rounded-2xl border border-indigo-100 animate-in fade-in slide-in-from-top-4 duration-300">
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="font-black text-indigo-900 uppercase tracking-widest text-xs">{t.selectTemplate}</h4>
+                  <button onClick={() => setShowTemplates(false)} className="text-indigo-400 hover:text-indigo-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {Object.keys(INDUSTRY_TEMPLATES).map(key => (
+                    <button
+                      key={key}
+                      onClick={() => {
+                        onCreatePlan(key);
+                        setShowTemplates(false);
+                      }}
+                      className="bg-white p-3 rounded-xl border border-indigo-100 text-left hover:border-indigo-400 hover:shadow-sm transition-all group"
+                    >
+                      <span className="block text-[10px] font-bold text-slate-700 group-hover:text-indigo-600 transition-colors">
+                        {(t.industries as any)[key] || key}
+                      </span>
+                    </button>
+                  ))}
+                </div>
               </div>
-              <span className="font-bold text-slate-500 group-hover:text-slate-800 transition-colors">{t.newPlanName}</span>
-            </button>
+            )}
 
             {/* Plan Cards */}
             {plans.map(plan => (
