@@ -20,6 +20,8 @@ const pool = new Pool({
   ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : false,
 });
 
+export const app = express();
+
 const getGoogleClient = (origin: string) => {
   const redirectUri = `${origin}/auth/google/callback`;
   return new OAuth2Client(
@@ -53,6 +55,26 @@ async function initDb() {
         PRIMARY KEY (id, company_id)
       );
 
+      CREATE TABLE IF NOT EXISTS monitoring_logs (
+        id TEXT PRIMARY KEY,
+        company_id TEXT NOT NULL,
+        ccp_id TEXT NOT NULL,
+        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        value NUMERIC NOT NULL,
+        unit TEXT,
+        operator TEXT,
+        status TEXT
+      );
+
+      CREATE TABLE IF NOT EXISTS alerts (
+        id TEXT PRIMARY KEY,
+        company_id TEXT NOT NULL,
+        type TEXT NOT NULL,
+        message TEXT NOT NULL,
+        is_read BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
       CREATE TABLE IF NOT EXISTS e_documents (
         id TEXT PRIMARY KEY,
         company_id TEXT NOT NULL,
@@ -67,17 +89,11 @@ async function initDb() {
   }
 }
 
-async function startServer() {
-  const app = express();
-  const PORT = 3000;
+app.use(cors());
+app.use(express.json({ limit: '50mb' }));
 
-  app.use(cors());
-  app.use(express.json({ limit: '50mb' }));
-
-  await initDb();
-
-  // Auth Routes
-  app.get("/api/auth/google/url", (req, res) => {
+// Auth Routes
+app.get("/api/auth/google/url", (req, res) => {
     const origin = req.headers.origin || (process.env.APP_URL || "http://localhost:3000");
     const client = getGoogleClient(origin);
     const url = client.generateAuthUrl({
@@ -327,6 +343,81 @@ async function startServer() {
     }
   });
 
+  // Monitoring Logs Routes
+  app.get("/api/monitoring", async (req, res) => {
+    const { companyId, ccpId } = req.query;
+    if (!companyId) return res.status(400).json({ error: "companyId is required" });
+
+    try {
+      let query = "SELECT * FROM monitoring_logs WHERE company_id = $1";
+      const params = [companyId];
+      if (ccpId) {
+        query += " AND ccp_id = $2";
+        params.push(ccpId as string);
+      }
+      query += " ORDER BY timestamp DESC LIMIT 100";
+      const result = await pool.query(query, params);
+      res.json(result.rows);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Failed to fetch monitoring logs" });
+    }
+  });
+
+  app.post("/api/monitoring", async (req, res) => {
+    const { companyId, log } = req.body;
+    if (!companyId || !log) return res.status(400).json({ error: "companyId and log are required" });
+
+    try {
+      await pool.query(
+        `INSERT INTO monitoring_logs (id, company_id, ccp_id, value, unit, operator, status) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [log.id || `log-${Date.now()}`, companyId, log.ccpId, log.value, log.unit, log.operator, log.status]
+      );
+      res.json({ success: true });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Failed to save monitoring log" });
+    }
+  });
+
+  // Alerts Routes
+  app.get("/api/alerts", async (req, res) => {
+    const { companyId } = req.query;
+    if (!companyId) return res.status(400).json({ error: "companyId is required" });
+
+    try {
+      const result = await pool.query(
+        "SELECT * FROM alerts WHERE company_id = $1 ORDER BY created_at DESC",
+        [companyId]
+      );
+      res.json(result.rows);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Failed to fetch alerts" });
+    }
+  });
+
+  app.post("/api/alerts/read", async (req, res) => {
+    const { companyId, alertId } = req.body;
+    if (!companyId || !alertId) return res.status(400).json({ error: "companyId and alertId are required" });
+
+    try {
+      await pool.query(
+        "UPDATE alerts SET is_read = TRUE WHERE id = $1 AND company_id = $2",
+        [alertId, companyId]
+      );
+      res.json({ success: true });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Failed to update alert" });
+    }
+  });
+
+async function startServer() {
+  const PORT = 3000;
+  await initDb();
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
@@ -341,9 +432,11 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-  });
+  if (process.env.NODE_ENV !== "production" || !process.env.VERCEL) {
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`Server running on http://localhost:${PORT}`);
+    });
+  }
 }
 
 startServer();
