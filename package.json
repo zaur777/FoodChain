@@ -4,11 +4,11 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "tsx server.ts",
-    "build": "vite build",
-    "preview": "vite preview",
-    "start": "node server.ts",
-    "lint": "tsc --noEmit"
+  "dev": "tsx server.ts",
+  "build": "vite build",
+  "vercel-build": "vite build",
+  "start": "tsx server.ts"
+}
   },
   "dependencies": {
     "@google/genai": "^1.37.0",
