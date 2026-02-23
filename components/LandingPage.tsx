@@ -7,11 +7,25 @@ import { ICONS } from '../constants';
 interface LandingPageProps {
   lang: Language;
   onLogin: (company: Company, shouldCreate?: boolean) => void;
+  onRegister: (companyData: Partial<Company>) => void;
+  onLoginByEmail: (email: string) => void;
+  onSystemOwnerLogin: () => void;
   setLang: (lang: Language) => void;
 }
 
-const LandingPage: React.FC<LandingPageProps> = ({ lang, onLogin, setLang }) => {
+const LandingPage: React.FC<LandingPageProps> = ({ lang, onLogin, onRegister, onLoginByEmail, onSystemOwnerLogin, setLang }) => {
   const t = translations[lang];
+  const [showRegister, setShowRegister] = React.useState(false);
+  const [showLogin, setShowLogin] = React.useState(false);
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [regData, setRegData] = React.useState({
+    name: '',
+    email: '',
+    taxId: '',
+    phone: '',
+    plan: 'middle' as 'small' | 'middle' | 'big'
+  });
+  const [loginEmail, setLoginEmail] = React.useState('');
 
   const handleGoogleLogin = async () => {
     try {
@@ -30,6 +44,26 @@ const LandingPage: React.FC<LandingPageProps> = ({ lang, onLogin, setLang }) => 
       email: "info@foodcorp.com",
       plan: plan
     }, shouldCreate);
+  };
+
+  const submitRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      await onRegister(regData);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const submitLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      await onLoginByEmail(loginEmail);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -54,10 +88,132 @@ const LandingPage: React.FC<LandingPageProps> = ({ lang, onLogin, setLang }) => 
               </button>
             ))}
           </div>
-          <button onClick={() => handleMockAction('middle')} className="text-sm font-bold text-slate-600 hover:text-indigo-600">{t.login}</button>
-          <button onClick={() => handleMockAction('middle')} className="bg-slate-900 text-white px-5 py-2 rounded-lg text-sm font-bold shadow-lg hover:bg-slate-800 transition-all">{t.register}</button>
+          <button onClick={onSystemOwnerLogin} className="text-xs font-black text-slate-400 hover:text-indigo-600 uppercase tracking-widest transition-colors">
+            {t.systemOwnerLogin}
+          </button>
+          <button onClick={() => setShowLogin(true)} className="text-sm font-bold text-slate-600 hover:text-indigo-600">{t.login}</button>
+          <button onClick={() => setShowRegister(true)} className="bg-slate-900 text-white px-5 py-2 rounded-lg text-sm font-bold shadow-lg hover:bg-slate-800 transition-all">{t.register}</button>
         </div>
       </nav>
+
+      {/* Registration Modal */}
+      {showRegister && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-300">
+            <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+              <h2 className="text-2xl font-black tracking-tighter text-slate-900">{t.register}</h2>
+              <button onClick={() => setShowRegister(false)} className="text-slate-400 hover:text-slate-600">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+              </button>
+            </div>
+            <form onSubmit={submitRegister} className="p-8 space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Company Name</label>
+                <input 
+                  required
+                  type="text" 
+                  value={regData.name}
+                  onChange={e => setRegData({...regData, name: e.target.value})}
+                  className="w-full rounded-xl border-slate-200 text-sm focus:ring-indigo-500" 
+                  placeholder="e.g. Global Food Corp"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Email Address</label>
+                <input 
+                  required
+                  type="email" 
+                  value={regData.email}
+                  onChange={e => setRegData({...regData, email: e.target.value})}
+                  className="w-full rounded-xl border-slate-200 text-sm focus:ring-indigo-500" 
+                  placeholder="info@company.com"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tax ID (VÖEN)</label>
+                  <input 
+                    type="text" 
+                    value={regData.taxId}
+                    onChange={e => setRegData({...regData, taxId: e.target.value})}
+                    className="w-full rounded-xl border-slate-200 text-sm focus:ring-indigo-500" 
+                    placeholder="12345678"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Phone</label>
+                  <input 
+                    type="tel" 
+                    value={regData.phone}
+                    onChange={e => setRegData({...regData, phone: e.target.value})}
+                    className="w-full rounded-xl border-slate-200 text-sm focus:ring-indigo-500" 
+                    placeholder="+994..."
+                  />
+                </div>
+              </div>
+              <button 
+                type="submit" 
+                disabled={isSubmitting}
+                className={`w-full bg-indigo-600 text-white py-4 rounded-xl font-bold shadow-lg hover:bg-indigo-700 transition-all flex items-center justify-center gap-2 ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
+              >
+                {isSubmitting ? (
+                  <>
+                    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    Processing...
+                  </>
+                ) : 'Complete Registration'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Login Modal */}
+      {showLogin && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-300">
+            <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+              <h2 className="text-2xl font-black tracking-tighter text-slate-900">{t.login}</h2>
+              <button onClick={() => setShowLogin(false)} className="text-slate-400 hover:text-slate-600">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+              </button>
+            </div>
+            <form onSubmit={submitLogin} className="p-8 space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Email Address</label>
+                <input 
+                  required
+                  type="email" 
+                  value={loginEmail}
+                  onChange={e => setLoginEmail(e.target.value)}
+                  className="w-full rounded-xl border-slate-200 text-sm focus:ring-indigo-500" 
+                  placeholder="info@company.com"
+                />
+              </div>
+              <button 
+                type="submit" 
+                disabled={isSubmitting}
+                className={`w-full bg-slate-900 text-white py-4 rounded-xl font-bold shadow-lg hover:bg-slate-800 transition-all flex items-center justify-center gap-2 ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
+              >
+                {isSubmitting ? (
+                  <>
+                    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    Signing in...
+                  </>
+                ) : 'Sign In'}
+              </button>
+              <div className="relative py-4">
+                <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-100"></div></div>
+                <div className="relative flex justify-center text-xs uppercase"><span className="bg-white px-2 text-slate-400 font-bold tracking-widest">Or</span></div>
+              </div>
+              <button type="button" onClick={handleGoogleLogin} className="w-full bg-white border border-slate-200 text-slate-700 py-4 rounded-xl font-bold hover:bg-slate-50 transition-all flex items-center justify-center gap-2">
+                <svg width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+                Continue with Google
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
 
       <main className="flex-1">
         {/* Hero Section */}
@@ -77,7 +233,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ lang, onLogin, setLang }) => 
               {t.continueWithGoogle}
             </button>
             <button 
-              onClick={() => handleMockAction('middle', true)} 
+              onClick={() => setShowRegister(true)} 
               className="bg-indigo-600 text-white px-8 py-4 rounded-xl text-lg font-bold shadow-xl hover:bg-indigo-700 transition-all transform hover:-translate-y-1"
             >
               {t.getStarted}
@@ -102,7 +258,10 @@ const LandingPage: React.FC<LandingPageProps> = ({ lang, onLogin, setLang }) => 
                 title={t.smallCompany} 
                 price="19" 
                 features={t.features.small} 
-                onSelect={() => handleMockAction('small', true)}
+                onSelect={() => {
+                  setRegData({...regData, plan: 'small'});
+                  setShowRegister(true);
+                }}
                 lang={lang}
               />
               <PricingCard 
@@ -110,14 +269,20 @@ const LandingPage: React.FC<LandingPageProps> = ({ lang, onLogin, setLang }) => 
                 price="29" 
                 features={t.features.middle} 
                 featured={true} 
-                onSelect={() => handleMockAction('middle', true)}
+                onSelect={() => {
+                  setRegData({...regData, plan: 'middle'});
+                  setShowRegister(true);
+                }}
                 lang={lang}
               />
               <PricingCard 
                 title={t.bigCompany} 
                 price="199" 
                 features={t.features.big} 
-                onSelect={() => handleMockAction('big', true)}
+                onSelect={() => {
+                  setRegData({...regData, plan: 'big'});
+                  setShowRegister(true);
+                }}
                 lang={lang}
               />
             </div>

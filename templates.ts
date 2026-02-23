@@ -3,6 +3,14 @@ import { HACCPPlan, HazardType, Severity } from './types';
 export const INDUSTRY_TEMPLATES: Record<string, Partial<HACCPPlan>> = {
   restaurant: {
     name: 'Standard Restaurant Kitchen',
+    materials: [
+      { id: 'm-res-1', name: 'Raw Chicken Breast', type: 'Ingredient', regulatoryDoc: 'Local Health Dept', storageConditions: 'Chilled < 4°C', expirationPeriod: '3 days', allergens: [] },
+      { id: 'm-res-2', name: 'Fresh Lettuce', type: 'Ingredient', regulatoryDoc: 'GAP Certified', storageConditions: 'Chilled < 4°C', expirationPeriod: '5 days', allergens: [] },
+      { id: 'm-res-3', name: 'Wheat Buns', type: 'Ingredient', regulatoryDoc: 'Bakery Spec', storageConditions: 'Dry/Ambient', expirationPeriod: '7 days', allergens: ['Wheat', 'Gluten'] }
+    ],
+    products: [
+      { id: 'p-res-1', name: 'Grilled Chicken Sandwich', description: 'Cooked chicken on wheat bun with lettuce', intendedUse: 'Immediate consumption', targetAudience: 'General public' }
+    ],
     flowSteps: [
       { id: 'res-1', order: 1, name: 'Receiving Raw Materials', description: 'Receiving chilled and dry goods' },
       { id: 'res-2', order: 2, name: 'Chilled Storage', description: 'Storage at < 5°C' },
@@ -45,6 +53,13 @@ export const INDUSTRY_TEMPLATES: Record<string, Partial<HACCPPlan>> = {
   },
   poultry_farming: {
     name: 'Chicken Grow-out Facility',
+    materials: [
+      { id: 'm-pf-1', name: 'Poultry Starter Feed', type: 'Ingredient', regulatoryDoc: 'Feed Spec #101', storageConditions: 'Dry Silo', expirationPeriod: '3 months', allergens: ['Soy'] },
+      { id: 'm-pf-2', name: 'Drinking Water', type: 'Ingredient', regulatoryDoc: 'Municipal Standards', storageConditions: 'Ambient', expirationPeriod: 'N/A', allergens: [] }
+    ],
+    products: [
+      { id: 'p-pf-1', name: 'Live Broilers', description: '42-day old live chickens', intendedUse: 'Slaughter', targetAudience: 'Processing plants' }
+    ],
     flowSteps: [
       { id: 'pf-1', order: 1, name: 'Chicks Receiving', description: 'Day-old chicks arrival' },
       { id: 'pf-2', order: 2, name: 'Feeding & Watering', description: 'Growth phase' },
@@ -70,6 +85,13 @@ export const INDUSTRY_TEMPLATES: Record<string, Partial<HACCPPlan>> = {
   },
   feed_manufacturing: {
     name: 'Animal Feed Mill',
+    materials: [
+      { id: 'm-fm-1', name: 'Corn Grain', type: 'Ingredient', regulatoryDoc: 'Grain Standard', storageConditions: 'Dry Silo', expirationPeriod: '1 year', allergens: [] },
+      { id: 'm-fm-2', name: 'Vitamin Premix', type: 'Additive', regulatoryDoc: 'Supplier COA', storageConditions: 'Cool/Dry', expirationPeriod: '6 months', allergens: [] }
+    ],
+    products: [
+      { id: 'p-fm-1', name: 'Pelleted Broiler Feed', description: 'Complete nutritional feed', intendedUse: 'Poultry nutrition', targetAudience: 'Poultry farms' }
+    ],
     flowSteps: [
       { id: 'fm-1', order: 1, name: 'Ingredient Receiving', description: 'Bulk grains and additives' },
       { id: 'fm-2', order: 2, name: 'Grinding & Mixing', description: 'Particle size reduction' },
@@ -95,6 +117,13 @@ export const INDUSTRY_TEMPLATES: Record<string, Partial<HACCPPlan>> = {
   },
   chicken_slaughter: {
     name: 'Poultry Slaughter & Processing',
+    materials: [
+      { id: 'm-cs-1', name: 'Live Broilers', type: 'Ingredient', regulatoryDoc: 'Farm Health Cert', storageConditions: 'Ambient', expirationPeriod: '24 hours', allergens: [] },
+      { id: 'm-cs-2', name: 'Packaging Film', type: 'Packaging', regulatoryDoc: 'Food Grade Cert', storageConditions: 'Dry', expirationPeriod: '2 years', allergens: [] }
+    ],
+    products: [
+      { id: 'p-cs-1', name: 'Whole Chilled Chicken', description: 'Eviscerated carcass', intendedUse: 'Cooking', targetAudience: 'Retail/Foodservice' }
+    ],
     flowSteps: [
       { id: 'cs-1', order: 1, name: 'Live Bird Receiving', description: 'Unloading' },
       { id: 'cs-2', order: 2, name: 'Stunning & Bleeding', description: 'Initial processing' },
@@ -121,6 +150,13 @@ export const INDUSTRY_TEMPLATES: Record<string, Partial<HACCPPlan>> = {
   },
   cattle_slaughter: {
     name: 'Cattle Slaughterhouse',
+    materials: [
+      { id: 'm-bs-1', name: 'Live Cattle', type: 'Ingredient', regulatoryDoc: 'Vet Health Cert', storageConditions: 'Lairage', expirationPeriod: '48 hours', allergens: [] },
+      { id: 'm-bs-2', name: 'Organic Acid Spray', type: 'Additive', regulatoryDoc: 'FDA Approved', storageConditions: 'Cool', expirationPeriod: '1 year', allergens: [] }
+    ],
+    products: [
+      { id: 'p-bs-1', name: 'Beef Carcass Sides', description: 'Split chilled carcasses', intendedUse: 'Further processing', targetAudience: 'Butchers/Processors' }
+    ],
     flowSteps: [
       { id: 'bs-1', order: 1, name: 'Lairage', description: 'Pre-slaughter holding' },
       { id: 'bs-2', order: 2, name: 'Stunning & Hoisting', description: 'Processing start' },
@@ -147,6 +183,13 @@ export const INDUSTRY_TEMPLATES: Record<string, Partial<HACCPPlan>> = {
   },
   drink_production: {
     name: 'Beverage Bottling Plant',
+    materials: [
+      { id: 'm-dp-1', name: 'Sugar Syrup', type: 'Ingredient', regulatoryDoc: 'Supplier Spec', storageConditions: 'Ambient', expirationPeriod: '6 months', allergens: [] },
+      { id: 'm-dp-2', name: 'PET Bottles', type: 'Packaging', regulatoryDoc: 'Food Grade Cert', storageConditions: 'Dry', expirationPeriod: 'Indefinite', allergens: [] }
+    ],
+    products: [
+      { id: 'p-dp-1', name: 'Carbonated Soft Drink', description: 'Sweetened flavored beverage', intendedUse: 'Direct consumption', targetAudience: 'General public' }
+    ],
     flowSteps: [
       { id: 'dp-1', order: 1, name: 'Water Treatment', description: 'Filtration and UV' },
       { id: 'dp-2', order: 2, name: 'Syrup Mixing', description: 'Ingredient blending' },
@@ -173,6 +216,13 @@ export const INDUSTRY_TEMPLATES: Record<string, Partial<HACCPPlan>> = {
   },
   milk_processing: {
     name: 'Dairy Processing Plant',
+    materials: [
+      { id: 'm-mp-1', name: 'Raw Cow Milk', type: 'Ingredient', regulatoryDoc: 'Farm Quality Cert', storageConditions: 'Chilled < 4°C', expirationPeriod: '48 hours', allergens: ['Milk'] },
+      { id: 'm-mp-2', name: 'HDPE Bottles', type: 'Packaging', regulatoryDoc: 'Food Grade Cert', storageConditions: 'Dry', expirationPeriod: 'Indefinite', allergens: [] }
+    ],
+    products: [
+      { id: 'p-mp-1', name: 'Pasteurized Whole Milk', description: 'Standardized 3.5% fat milk', intendedUse: 'Direct consumption', targetAudience: 'General public' }
+    ],
     flowSteps: [
       { id: 'mp-1', order: 1, name: 'Raw Milk Receiving', description: 'Tanker unloading' },
       { id: 'mp-2', order: 2, name: 'Clarification/Separation', description: 'Centrifugation' },
@@ -199,6 +249,13 @@ export const INDUSTRY_TEMPLATES: Record<string, Partial<HACCPPlan>> = {
   },
   milk_farm: {
     name: 'Dairy Farm Operations',
+    materials: [
+      { id: 'm-mf-1', name: 'Dairy Cow Feed', type: 'Ingredient', regulatoryDoc: 'Feed Spec', storageConditions: 'Dry Silo', expirationPeriod: '3 months', allergens: [] },
+      { id: 'm-mf-2', name: 'Teat Dip Sanitizer', type: 'Additive', regulatoryDoc: 'Vet Approved', storageConditions: 'Cool', expirationPeriod: '1 year', allergens: [] }
+    ],
+    products: [
+      { id: 'p-mf-1', name: 'Raw Bulk Milk', description: 'Unpasteurized cow milk', intendedUse: 'Processing', targetAudience: 'Dairy plants' }
+    ],
     flowSteps: [
       { id: 'mf-1', order: 1, name: 'Milking', description: 'Extraction' },
       { id: 'mf-2', order: 2, name: 'Cooling', description: 'Bulk tank storage' },

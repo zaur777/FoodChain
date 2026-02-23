@@ -35,6 +35,8 @@ async function initDb() {
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
         email TEXT UNIQUE NOT NULL,
+        tax_id TEXT,
+        phone TEXT,
         plan TEXT DEFAULT 'Small',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
@@ -45,6 +47,14 @@ async function initDb() {
         data JSONB NOT NULL,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         PRIMARY KEY (id, company_id)
+      );
+
+      CREATE TABLE IF NOT EXISTS e_documents (
+        id TEXT PRIMARY KEY,
+        company_id TEXT NOT NULL,
+        type TEXT NOT NULL,
+        data JSONB NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
     console.log("Database initialized");
@@ -126,7 +136,54 @@ async function startServer() {
     }
   });
 
-  // API Routes
+  app.post("/api/auth/register", async (req, res) => {
+    const { id, name, email, taxId, phone, plan } = req.body;
+    if (!email || !name) return res.status(400).json({ error: "Email and name are required" });
+
+    try {
+      const result = await pool.query(
+        `INSERT INTO companies (id, name, email, tax_id, phone, plan) 
+         VALUES ($1, $2, $3, $4, $5, $6) 
+         ON CONFLICT (email) DO UPDATE SET name = $2, tax_id = $4, phone = $5, plan = $6
+         RETURNING *`,
+        [id || `comp-${Date.now()}`, name, email, taxId, phone, plan || 'Small']
+      );
+      const row = result.rows[0];
+      res.json({
+        id: row.id,
+        name: row.name,
+        email: row.email,
+        taxId: row.tax_id,
+        phone: row.phone,
+        plan: row.plan
+      });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Registration failed" });
+    }
+  });
+
+  app.post("/api/auth/login", async (req, res) => {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: "Email is required" });
+
+    try {
+      const result = await pool.query("SELECT * FROM companies WHERE email = $1", [email]);
+      if (result.rows.length === 0) return res.status(404).json({ error: "Company not found" });
+      const row = result.rows[0];
+      res.json({
+        id: row.id,
+        name: row.name,
+        email: row.email,
+        taxId: row.tax_id,
+        phone: row.phone,
+        plan: row.plan
+      });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Login failed" });
+    }
+  });
   app.get("/api/plans", async (req, res) => {
     const { companyId } = req.query;
     if (!companyId) return res.status(400).json({ error: "companyId is required" });
@@ -172,6 +229,45 @@ async function startServer() {
     } catch (err) {
       console.error(err);
       res.status(500).json({ error: "Failed to delete plan" });
+    }
+  });
+
+  // E-Documentation Routes
+  app.get("/api/documents", async (req, res) => {
+    const { companyId, type } = req.query;
+    if (!companyId) return res.status(400).json({ error: "companyId is required" });
+
+    try {
+      let query = "SELECT data FROM e_documents WHERE company_id = $1";
+      const params = [companyId];
+      if (type) {
+        query += " AND type = $2";
+        params.push(type as string);
+      }
+      query += " ORDER BY created_at DESC";
+      const result = await pool.query(query, params);
+      res.json(result.rows.map(row => row.data));
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Failed to fetch documents" });
+    }
+  });
+
+  app.post("/api/documents", async (req, res) => {
+    const { companyId, document } = req.body;
+    if (!companyId || !document) return res.status(400).json({ error: "companyId and document are required" });
+
+    try {
+      await pool.query(
+        `INSERT INTO e_documents (id, company_id, type, data) 
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (id) DO UPDATE SET data = $4`,
+        [document.id, companyId, document.type, document]
+      );
+      res.json({ success: true });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Failed to save document" });
     }
   });
 
