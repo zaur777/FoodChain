@@ -139,38 +139,36 @@ const App: React.FC = () => {
     }
   }, []);
 
-  const handleRegister = async (companyData: Partial<Company>) => {
+  const handleRegister = async (companyData: any) => {
     try {
       const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(companyData),
       });
+      const data = await response.json();
       if (response.ok) {
-        const newCompany = await response.json();
-        handleLogin(newCompany, true);
+        alert(data.message || "Registration successful. Please verify your email.");
       } else {
-        const err = await response.json();
-        alert(err.error || "Registration failed");
+        alert(data.error || "Registration failed");
       }
     } catch (error) {
       console.error("Registration error", error);
     }
   };
 
-  const handleLoginByEmail = async (email: string) => {
+  const handleLoginByEmail = async (email: string, password?: string) => {
     try {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, password }),
       });
+      const data = await response.json();
       if (response.ok) {
-        const company = await response.json();
-        handleLogin(company);
+        handleLogin(data);
       } else {
-        const err = await response.json();
-        alert(err.error || "Login failed");
+        alert(data.error || "Login failed");
       }
     } catch (error) {
       console.error("Login error", error);

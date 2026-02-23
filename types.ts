@@ -8,6 +8,7 @@ export interface Company {
   email: string;
   taxId?: string;
   phone?: string;
+  isVerified?: boolean;
 }
 
 export enum HazardType {

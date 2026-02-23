@@ -6,6 +6,7 @@ import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
 import { OAuth2Client } from "google-auth-library";
+import bcrypt from "bcryptjs";
 
 dotenv.config();
 
@@ -35,9 +36,12 @@ async function initDb() {
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
         email TEXT UNIQUE NOT NULL,
+        password_hash TEXT,
         tax_id TEXT,
         phone TEXT,
         plan TEXT DEFAULT 'Small',
+        is_verified BOOLEAN DEFAULT FALSE,
+        verification_token TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
 
@@ -103,9 +107,9 @@ async function startServer() {
 
       // Upsert company
       const result = await pool.query(
-        `INSERT INTO companies (id, name, email) 
-         VALUES ($1, $2, $3) 
-         ON CONFLICT (email) DO UPDATE SET name = $2
+        `INSERT INTO companies (id, name, email, is_verified) 
+         VALUES ($1, $2, $3, TRUE) 
+         ON CONFLICT (email) DO UPDATE SET name = $2, is_verified = TRUE
          RETURNING *`,
         [sub, name, email]
       );
@@ -137,25 +141,34 @@ async function startServer() {
   });
 
   app.post("/api/auth/register", async (req, res) => {
-    const { id, name, email, taxId, phone, plan } = req.body;
+    const { id, name, email, password, taxId, phone, plan } = req.body;
     if (!email || !name) return res.status(400).json({ error: "Email and name are required" });
 
     try {
+      const passwordHash = password ? await bcrypt.hash(password, 10) : null;
+      const verificationToken = Math.random().toString(36).substring(2, 15);
+
       const result = await pool.query(
-        `INSERT INTO companies (id, name, email, tax_id, phone, plan) 
-         VALUES ($1, $2, $3, $4, $5, $6) 
-         ON CONFLICT (email) DO UPDATE SET name = $2, tax_id = $4, phone = $5, plan = $6
+        `INSERT INTO companies (id, name, email, password_hash, tax_id, phone, plan, verification_token) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
+         ON CONFLICT (email) DO UPDATE SET name = $2, tax_id = $5, phone = $6, plan = $7
          RETURNING *`,
-        [id || `comp-${Date.now()}`, name, email, taxId, phone, plan || 'Small']
+        [id || `comp-${Date.now()}`, name, email, passwordHash, taxId, phone, plan || 'Small', verificationToken]
       );
       const row = result.rows[0];
+
+      // Mock email verification - in a real app, you'd send an email here
+      console.log(`Verification link for ${email}: ${process.env.APP_URL || 'http://localhost:3000'}/api/auth/verify?token=${verificationToken}`);
+
       res.json({
         id: row.id,
         name: row.name,
         email: row.email,
         taxId: row.tax_id,
         phone: row.phone,
-        plan: row.plan
+        plan: row.plan,
+        isVerified: row.is_verified,
+        message: "Registration successful. Please verify your email (check server logs for mock link)."
       });
     } catch (err) {
       console.error(err);
@@ -163,21 +176,64 @@ async function startServer() {
     }
   });
 
+  app.get("/api/auth/verify", async (req, res) => {
+    const { token } = req.query;
+    if (!token) return res.status(400).send("Token is required");
+
+    try {
+      const result = await pool.query(
+        "UPDATE companies SET is_verified = TRUE, verification_token = NULL WHERE verification_token = $1 RETURNING *",
+        [token]
+      );
+
+      if (result.rows.length === 0) return res.status(400).send("Invalid or expired token");
+
+      res.send(`
+        <html>
+          <body style="font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; background: #f8fafc;">
+            <div style="background: white; padding: 2rem; border-radius: 1rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); text-align: center;">
+              <h1 style="color: #4f46e5;">Email Verified!</h1>
+              <p style="color: #64748b;">Your account has been successfully verified. You can now log in to the application.</p>
+              <a href="/" style="display: inline-block; margin-top: 1rem; padding: 0.5rem 1rem; background: #4f46e5; color: white; text-decoration: none; border-radius: 0.5rem;">Go to App</a>
+            </div>
+          </body>
+        </html>
+      `);
+    } catch (err) {
+      console.error(err);
+      res.status(500).send("Verification failed");
+    }
+  });
+
   app.post("/api/auth/login", async (req, res) => {
-    const { email } = req.body;
+    const { email, password } = req.body;
     if (!email) return res.status(400).json({ error: "Email is required" });
 
     try {
       const result = await pool.query("SELECT * FROM companies WHERE email = $1", [email]);
       if (result.rows.length === 0) return res.status(404).json({ error: "Company not found" });
+      
       const row = result.rows[0];
+
+      if (row.password_hash && password) {
+        const isValid = await bcrypt.compare(password, row.password_hash);
+        if (!isValid) return res.status(401).json({ error: "Invalid password" });
+      } else if (row.password_hash && !password) {
+        return res.status(401).json({ error: "Password required for this account" });
+      }
+
+      if (!row.is_verified) {
+        return res.status(403).json({ error: "Please verify your email before logging in." });
+      }
+
       res.json({
         id: row.id,
         name: row.name,
         email: row.email,
         taxId: row.tax_id,
         phone: row.phone,
-        plan: row.plan
+        plan: row.plan,
+        isVerified: row.is_verified
       });
     } catch (err) {
       console.error(err);

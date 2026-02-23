@@ -7,8 +7,8 @@ import { ICONS } from '../constants';
 interface LandingPageProps {
   lang: Language;
   onLogin: (company: Company, shouldCreate?: boolean) => void;
-  onRegister: (companyData: Partial<Company>) => void;
-  onLoginByEmail: (email: string) => void;
+  onRegister: (companyData: any) => void;
+  onLoginByEmail: (email: string, password?: string) => void;
   onSystemOwnerLogin: () => void;
   setLang: (lang: Language) => void;
 }
@@ -21,11 +21,15 @@ const LandingPage: React.FC<LandingPageProps> = ({ lang, onLogin, onRegister, on
   const [regData, setRegData] = React.useState({
     name: '',
     email: '',
+    password: '',
     taxId: '',
     phone: '',
     plan: 'middle' as 'small' | 'middle' | 'big'
   });
-  const [loginEmail, setLoginEmail] = React.useState('');
+  const [loginData, setLoginData] = React.useState({
+    email: '',
+    password: ''
+  });
 
   const handleGoogleLogin = async () => {
     try {
@@ -60,7 +64,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ lang, onLogin, onRegister, on
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      await onLoginByEmail(loginEmail);
+      await onLoginByEmail(loginData.email, loginData.password);
     } finally {
       setIsSubmitting(false);
     }
@@ -129,6 +133,17 @@ const LandingPage: React.FC<LandingPageProps> = ({ lang, onLogin, onRegister, on
                   placeholder="info@company.com"
                 />
               </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Password</label>
+                <input 
+                  required
+                  type="password" 
+                  value={regData.password}
+                  onChange={e => setRegData({...regData, password: e.target.value})}
+                  className="w-full rounded-xl border-slate-200 text-sm focus:ring-indigo-500" 
+                  placeholder="••••••••"
+                />
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tax ID (VÖEN)</label>
@@ -184,10 +199,21 @@ const LandingPage: React.FC<LandingPageProps> = ({ lang, onLogin, onRegister, on
                 <input 
                   required
                   type="email" 
-                  value={loginEmail}
-                  onChange={e => setLoginEmail(e.target.value)}
+                  value={loginData.email}
+                  onChange={e => setLoginData({...loginData, email: e.target.value})}
                   className="w-full rounded-xl border-slate-200 text-sm focus:ring-indigo-500" 
                   placeholder="info@company.com"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Password</label>
+                <input 
+                  required
+                  type="password" 
+                  value={loginData.password}
+                  onChange={e => setLoginData({...loginData, password: e.target.value})}
+                  className="w-full rounded-xl border-slate-200 text-sm focus:ring-indigo-500" 
+                  placeholder="••••••••"
                 />
               </div>
               <button 
