@@ -1,2 +1,2 @@
-import app from '../server'; // server.ts-dəki Express app-ni gətirir
+import { app } from "../server";
 export default app;
