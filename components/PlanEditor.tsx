@@ -97,28 +97,9 @@ const QuestionRow = ({ label, value, onChange }: { label: string; value: boolean
   </div>
 );
 
-const MaterialMultiSelect = ({ 
-  label, 
-  materials, 
-  selectedIds, 
-  onChange, 
-  onSuggest,
-  isSuggesting,
-  helperText, 
-  className = "" 
-}: { 
-  label: string; 
-  materials: Material[]; 
-  selectedIds: string[]; 
-  onChange: (ids: string[]) => void; 
-  onSuggest?: () => void;
-  isSuggesting?: boolean;
-  helperText?: string; 
-  className?: string 
-}) => {
+const MaterialMultiSelect = ({ label, materials, selectedIds, onChange, helperText, className = "" }: { label: string; materials: Material[]; selectedIds: string[]; onChange: (ids: string[]) => void; helperText?: string; className?: string }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
-  const [typeFilter, setTypeFilter] = useState<'All' | 'Ingredient' | 'Additive' | 'Packaging'>('All');
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -140,29 +121,13 @@ const MaterialMultiSelect = ({
   };
 
   const filteredMaterials = useMemo(() => {
-    return materials.filter(m => {
-      const matchesSearch = m.name.toLowerCase().includes(search.toLowerCase());
-      const matchesType = typeFilter === 'All' || m.type === typeFilter;
-      return matchesSearch && matchesType;
-    });
-  }, [materials, search, typeFilter]);
+    return materials.filter(m => m.name.toLowerCase().includes(search.toLowerCase()));
+  }, [materials, search]);
 
   const selectedCount = selectedIds.length;
   const summaryText = selectedCount > 0 
     ? `${selectedCount} item${selectedCount > 1 ? 's' : ''} linked` 
     : "Search & link materials...";
-
-  const handleSelectAll = () => {
-    const allFilteredIds = filteredMaterials.map(m => m.id);
-    const newIds = Array.from(new Set([...selectedIds, ...allFilteredIds]));
-    onChange(newIds);
-  };
-
-  const handleClearAll = () => {
-    const allFilteredIds = filteredMaterials.map(m => m.id);
-    const newIds = selectedIds.filter(id => !allFilteredIds.includes(id));
-    onChange(newIds);
-  };
 
   return (
     <div className={`flex flex-col relative ${className}`} ref={containerRef}>
@@ -171,114 +136,54 @@ const MaterialMultiSelect = ({
         {helperText && <span className="normal-case font-black text-indigo-500 italic bg-indigo-50 px-2 py-0.5 rounded-full text-[9px]">{helperText}</span>}
       </label>
       
-      <div className="flex gap-2">
-        <button 
-          type="button"
-          onClick={() => setIsOpen(!isOpen)}
-          className="flex-1 bg-slate-50/30 border border-slate-200 rounded-lg p-3 text-sm text-left flex items-center justify-between hover:border-indigo-300 transition-colors shadow-sm"
-        >
-          <span className={selectedCount > 0 ? 'text-slate-900 font-bold' : 'text-slate-400'}>{summaryText}</span>
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`}><path d="m6 9 6 6 6-6"/></svg>
-        </button>
-        
-        {onSuggest && (
-          <button 
-            type="button"
-            onClick={onSuggest}
-            disabled={isSuggesting}
-            className="bg-indigo-50 text-indigo-600 border border-indigo-200 rounded-lg px-4 flex items-center gap-2 hover:bg-indigo-100 transition-all disabled:opacity-50 shadow-sm"
-            title="AI Suggest Materials"
-          >
-            <ICONS.Sparkles />
-            <span className="text-xs font-black uppercase hidden md:inline">{isSuggesting ? "..." : "AI"}</span>
-          </button>
-        )}
-      </div>
+      <button 
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full bg-slate-50/30 border border-slate-200 rounded-lg p-3 text-sm text-left flex items-center justify-between hover:border-indigo-300 transition-colors shadow-sm"
+      >
+        <span className={selectedCount > 0 ? 'text-slate-900 font-bold' : 'text-slate-400'}>{summaryText}</span>
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`}><path d="m6 9 6 6 6-6"/></svg>
+      </button>
 
       {isOpen && (
-        <div className="absolute top-[calc(100%+4px)] left-0 right-0 bg-white border border-slate-200 rounded-xl shadow-2xl z-50 p-3 max-h-[400px] overflow-hidden flex flex-col">
-          <div className="space-y-3 mb-3">
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-              </span>
-              <input 
-                autoFocus
-                className="w-full pl-9 pr-3 py-2 rounded-lg border-slate-200 text-xs focus:ring-indigo-500 focus:border-indigo-500 bg-slate-50"
-                placeholder="Search by name..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-            </div>
-            
-            <div className="flex flex-wrap gap-1.5">
-              {(['All', 'Ingredient', 'Additive', 'Packaging'] as const).map(type => (
-                <button
-                  key={type}
-                  type="button"
-                  onClick={() => setTypeFilter(type)}
-                  className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider transition-all border ${
-                    typeFilter === type 
-                    ? 'bg-indigo-600 text-white border-indigo-600' 
-                    : 'bg-white text-slate-500 border-slate-200 hover:border-indigo-300'
-                  }`}
-                >
-                  {type}
-                </button>
-              ))}
-            </div>
-
-            <div className="flex justify-between items-center px-1">
-              <span className="text-[10px] text-slate-400 font-bold uppercase">{filteredMaterials.length} results</span>
-              <div className="flex gap-3">
-                <button type="button" onClick={handleSelectAll} className="text-[10px] font-black text-indigo-600 uppercase hover:underline">Select All</button>
-                <button type="button" onClick={handleClearAll} className="text-[10px] font-black text-slate-400 uppercase hover:text-red-500 hover:underline">Clear All</button>
-              </div>
-            </div>
+        <div className="absolute top-[calc(100%+4px)] left-0 right-0 bg-white border border-slate-200 rounded-xl shadow-2xl z-50 p-2 max-h-72 overflow-hidden flex flex-col">
+          <div className="relative mb-2">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            </span>
+            <input 
+              autoFocus
+              className="w-full pl-9 pr-3 py-1.5 rounded-lg border-slate-200 text-xs focus:ring-indigo-500 focus:border-indigo-500 bg-slate-50"
+              placeholder="Filter materials..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
           </div>
-
-          <div className="overflow-y-auto space-y-1 flex-1 pr-1">
+          <div className="overflow-y-auto space-y-1 flex-1">
             {filteredMaterials.length === 0 ? (
-              <div className="py-8 text-center">
-                <p className="text-xs text-slate-400 italic mb-1">No materials match your filters.</p>
-                <button onClick={() => { setSearch(''); setTypeFilter('All'); }} className="text-[10px] font-black text-indigo-600 uppercase hover:underline">Reset Filters</button>
-              </div>
+              <p className="text-[11px] text-slate-400 italic p-4 text-center">No materials found in registry.</p>
             ) : (
               filteredMaterials.map(m => {
                 const isSelected = selectedIds.includes(m.id);
                 return (
                   <label 
                     key={m.id} 
-                    className={`flex items-center gap-3 p-2.5 rounded-lg cursor-pointer transition-all border ${
-                      isSelected 
-                      ? 'bg-indigo-50 border-indigo-200 shadow-sm' 
-                      : 'hover:bg-slate-50 border-transparent'
+                    className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-colors ${
+                      isSelected ? 'bg-indigo-50 border border-indigo-100' : 'hover:bg-slate-50 border border-transparent'
                     }`}
                   >
                     <input 
                       type="checkbox" 
-                      className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 h-4 w-4"
+                      className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 h-3.5 w-3.5"
                       checked={isSelected}
                       onChange={() => toggleMaterial(m.id)}
                     />
                     <div className="flex flex-col flex-1">
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-bold text-slate-700">{m.name}</span>
-                        {m.allergens.length > 0 && (
-                          <div className="flex gap-1">
-                            <span className="text-[8px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-black uppercase tracking-tighter">ALLERGEN</span>
-                          </div>
-                        )}
+                        {m.allergens.length > 0 && <span className="text-[8px] bg-amber-100 text-amber-700 px-1 rounded font-black">ALLERGEN</span>}
                       </div>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <span className="text-[9px] text-slate-400 uppercase font-black">{m.type}</span>
-                        {m.storageConditions && (
-                          <>
-                            <span className="text-slate-300 text-[8px]">•</span>
-                            <span className="text-[9px] text-slate-400 italic">{m.storageConditions}</span>
-                          </>
-                        )}
-                      </div>
+                      <span className="text-[9px] text-slate-400 uppercase font-black">{m.type}</span>
                     </div>
                   </label>
                 );
@@ -294,7 +199,6 @@ const MaterialMultiSelect = ({
             <span key={m.id} className="bg-indigo-50 text-indigo-700 text-[10px] font-bold px-2.5 py-1 rounded-lg flex items-center gap-1.5 border border-indigo-100 shadow-sm group">
               {m.name}
               <button 
-                type="button"
                 onClick={() => toggleMaterial(m.id)} 
                 className="text-indigo-300 hover:text-red-500 transition-colors"
                 title="Remove link"
@@ -804,8 +708,6 @@ const PlanEditor: React.FC<PlanEditorProps> = ({ plans, selectedPlanId, onUpdate
                                        materials={currentPlan.materials}
                                        selectedIds={hazard.associatedMaterialIds || []}
                                        onChange={ids => updateHazardMaterials(hazard.id, ids)}
-                                       onSuggest={() => handleSuggestMaterials(hazard.id)}
-                                       isSuggesting={isSuggesting}
                                        helperText="Select materials that contribute to this hazard"
                                     />
                                  </div>
@@ -944,51 +846,18 @@ const PlanEditor: React.FC<PlanEditorProps> = ({ plans, selectedPlanId, onUpdate
                         helperText="Principle 4 (Who)"
                       />
                       
-                      <div className="md:col-span-1 space-y-4">
+                      <div className="md:col-span-1 space-y-2">
                         <MaterialMultiSelect 
                           label={t.associatedMaterials}
                           materials={currentPlan.materials}
                           selectedIds={ccp.associatedMaterialIds || []}
-                          onChange={ids => updateHazardMaterials(ccp.hazardId, ids)}
-                          onSuggest={() => handleSuggestMaterials(ccp.hazardId)}
-                          isSuggesting={isSuggestingMaterials === ccp.hazardId}
+                          onChange={ids => onUpdatePlan({...currentPlan, ccps: currentPlan.ccps.map(c => c.id === ccp.id ? {...c, associatedMaterialIds: ids} : c)})}
                           helperText="Linkage to Material Registry"
                         />
-                        
-                        {associatedMaterials.length > 0 && (
-                          <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 space-y-3">
-                            <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
-                              Material Impact Summary
-                            </h5>
-                            <div className="space-y-2">
-                              {associatedMaterials.map(m => (
-                                <div key={m.id} className="text-[11px] bg-white p-2 rounded-lg border border-slate-100 shadow-sm">
-                                  <div className="flex justify-between items-start mb-1">
-                                    <span className="font-bold text-slate-800">{m.name}</span>
-                                    <span className="text-[8px] font-black uppercase text-slate-400">{m.type}</span>
-                                  </div>
-                                  <div className="grid grid-cols-2 gap-2 text-[9px] text-slate-500">
-                                    <div>
-                                      <span className="font-bold text-slate-400 uppercase mr-1">Storage:</span>
-                                      {m.storageConditions || 'N/A'}
-                                    </div>
-                                    <div>
-                                      <span className="font-bold text-slate-400 uppercase mr-1">Allergens:</span>
-                                      {m.allergens.length > 0 ? (
-                                        <span className="text-amber-600 font-bold">{m.allergens.join(', ')}</span>
-                                      ) : 'None'}
-                                    </div>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                            {hasAllergenicMaterials && (
-                              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 border border-amber-100 rounded-lg text-[10px] text-amber-700 font-bold">
-                                <ICONS.Alert />
-                                Notice: Linked materials contain allergens. Ensure cleaning validation.
-                              </div>
-                            )}
+                        {hasAllergenicMaterials && (
+                          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 border border-amber-100 rounded-lg text-[10px] text-amber-700 font-bold">
+                            <ICONS.Alert />
+                            Notice: Linked materials contain allergens. Ensure cleaning validation.
                           </div>
                         )}
                       </div>

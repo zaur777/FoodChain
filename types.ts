@@ -6,9 +6,6 @@ export interface Company {
   name: string;
   plan: 'small' | 'middle' | 'big';
   email: string;
-  taxId?: string;
-  phone?: string;
-  isVerified?: boolean;
 }
 
 export enum HazardType {
@@ -114,35 +111,4 @@ export interface MonitoringLog {
   operator: string;
   status: 'Normal' | 'Warning' | 'Critical';
   actionTaken?: string;
-}
-
-export type DocType = 
-  | 'Hygiene' 
-  | 'Refrigeration' 
-  | 'Storage' 
-  | 'FryingOil' 
-  | 'ProductInspection' 
-  | 'Sanitization' 
-  | 'PestControl' 
-  | 'RawMaterial' 
-  | 'Equipment';
-
-export interface Attachment {
-  id: string;
-  name: string;
-  type: string;
-  data: string; // base64
-}
-
-export interface EDocument {
-  id: string;
-  companyId: string;
-  type: DocType;
-  title: string;
-  description: string;
-  timestamp: string; // ISO string for date and time
-  providedBy: string; // Person who performed the check
-  inputtedBy: string; // Person who entered the data
-  attachments: Attachment[];
-  metadata: Record<string, any>;
 }

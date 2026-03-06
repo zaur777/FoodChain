@@ -1,25 +1,19 @@
 
-import React, { useState } from 'react';
-import { HACCPPlan, Language, Company } from '../types';
+import React from 'react';
+import { HACCPPlan, Language } from '../types';
 import { ICONS } from '../constants';
-import { INDUSTRY_TEMPLATES } from '../templates';
 import { translations } from '../translations';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface DashboardProps {
   plans: HACCPPlan[];
-  company: Company;
   onSelectPlan: (id: string) => void;
   onDeletePlan: (id: string) => void;
-  onCreatePlan: (templateKey?: string) => void;
-  onUpdateCompany: (company: Company) => void;
+  onCreatePlan: () => void;
   lang: Language;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ plans, company, onSelectPlan, onDeletePlan, onCreatePlan, onUpdateCompany, lang }) => {
-  const [showTemplates, setShowTemplates] = useState(false);
-  const [isEditingProfile, setIsEditingProfile] = useState(false);
-  const [profileData, setProfileData] = useState<Company>(company);
+const Dashboard: React.FC<DashboardProps> = ({ plans, onSelectPlan, onDeletePlan, onCreatePlan, lang }) => {
   const t = translations[lang];
   const activePlans = plans.filter(p => p.status === 'Active');
   const totalHazards = plans.reduce((acc, p) => acc + p.hazards.length, 0);
@@ -31,102 +25,8 @@ const Dashboard: React.FC<DashboardProps> = ({ plans, company, onSelectPlan, onD
     CCPs: p.ccps.length
   }));
 
-  const handleSaveProfile = () => {
-    onUpdateCompany(profileData);
-    setIsEditingProfile(false);
-  };
-
   return (
     <div className="space-y-8">
-      {/* Company Profile Card */}
-      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-black text-xl">
-              {company.name.charAt(0).toUpperCase()}
-            </div>
-            <div>
-              <h2 className="text-xl font-black text-slate-900 tracking-tight">{company.name}</h2>
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{company.plan} Plan Member</p>
-            </div>
-          </div>
-          <button 
-            onClick={() => setIsEditingProfile(!isEditingProfile)}
-            className="text-xs font-black text-indigo-600 uppercase tracking-widest hover:underline"
-          >
-            {isEditingProfile ? 'Cancel' : 'Edit Profile'}
-          </button>
-        </div>
-
-        {isEditingProfile ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in slide-in-from-top-2 duration-300">
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Company Name</label>
-              <input 
-                type="text" 
-                value={profileData.name}
-                onChange={e => setProfileData({...profileData, name: e.target.value})}
-                className="w-full rounded-xl border-slate-200 text-sm focus:ring-indigo-500" 
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tax ID (VÖEN)</label>
-              <input 
-                type="text" 
-                value={profileData.taxId || ''}
-                onChange={e => setProfileData({...profileData, taxId: e.target.value})}
-                className="w-full rounded-xl border-slate-200 text-sm focus:ring-indigo-500" 
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Phone Number</label>
-              <input 
-                type="tel" 
-                value={profileData.phone || ''}
-                onChange={e => setProfileData({...profileData, phone: e.target.value})}
-                className="w-full rounded-xl border-slate-200 text-sm focus:ring-indigo-500" 
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Email Address</label>
-              <input 
-                type="email" 
-                value={profileData.email}
-                onChange={e => setProfileData({...profileData, email: e.target.value})}
-                className="w-full rounded-xl border-slate-200 text-sm focus:ring-indigo-500" 
-              />
-            </div>
-            <div className="md:col-span-2 flex justify-end">
-              <button 
-                onClick={handleSaveProfile}
-                className="bg-slate-900 text-white px-6 py-2 rounded-xl text-sm font-bold shadow-lg hover:bg-slate-800 transition-all"
-              >
-                Save Changes
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            <div className="flex flex-col">
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tax ID</span>
-              <span className="text-sm font-bold text-slate-700">{company.taxId || 'Not Set'}</span>
-            </div>
-            <div className="flex flex-col">
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Phone</span>
-              <span className="text-sm font-bold text-slate-700">{company.phone || 'Not Set'}</span>
-            </div>
-            <div className="flex flex-col">
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Email</span>
-              <span className="text-sm font-bold text-slate-700">{company.email}</span>
-            </div>
-            <div className="flex flex-col">
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Member Since</span>
-              <span className="text-sm font-bold text-slate-700">Feb 2024</span>
-            </div>
-          </div>
-        )}
-      </div>
-
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <StatCard title="Active Systems" value={activePlans.length} color="text-indigo-600" icon={<ICONS.Clipboard />} />
@@ -159,144 +59,77 @@ const Dashboard: React.FC<DashboardProps> = ({ plans, company, onSelectPlan, onD
         </div>
 
         {/* Plan Management Section */}
-        <div className="lg:col-span-2 space-y-8">
-          <div>
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="font-bold text-slate-800 text-lg">My HACCP Systems</h3>
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">{plans.length} Total</span>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Create New Card */}
-              <div className="flex flex-col gap-2">
-                <button 
-                  onClick={() => onCreatePlan()}
-                  className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50 hover:bg-white hover:border-indigo-400 hover:shadow-md transition-all group min-h-[140px] w-full"
-                >
-                  <div className="bg-white p-3 rounded-full shadow-sm text-slate-400 group-hover:text-indigo-600 mb-3 transition-colors">
-                    <ICONS.Plus />
-                  </div>
-                  <span className="font-bold text-slate-500 group-hover:text-slate-800 transition-colors">{t.newPlanName}</span>
-                </button>
-                
-                <button 
-                  onClick={() => setShowTemplates(!showTemplates)}
-                  className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-indigo-100 bg-indigo-50 text-indigo-600 text-xs font-black uppercase tracking-widest hover:bg-indigo-100 transition-all"
-                >
-                  <ICONS.Sparkles />
-                  {t.createFromTemplate}
-                </button>
-              </div>
-
-              {showTemplates && (
-                <div className="md:col-span-2 bg-indigo-50/50 p-6 rounded-2xl border border-indigo-100 animate-in fade-in slide-in-from-top-4 duration-300">
-                  <div className="flex items-center justify-between mb-4">
-                    <h4 className="font-black text-indigo-900 uppercase tracking-widest text-xs">{t.selectTemplate}</h4>
-                    <button onClick={() => setShowTemplates(false)} className="text-indigo-400 hover:text-indigo-600">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-                    </button>
-                  </div>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    {Object.keys(INDUSTRY_TEMPLATES).map(key => (
-                      <button
-                        key={key}
-                        onClick={() => {
-                          onCreatePlan(key);
-                          setShowTemplates(false);
-                        }}
-                        className="bg-white p-3 rounded-xl border border-indigo-100 text-left hover:border-indigo-400 hover:shadow-sm transition-all group"
-                      >
-                        <span className="block text-[10px] font-bold text-slate-700 group-hover:text-indigo-600 transition-colors">
-                          {(t.industries as any)[key] || key}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Plan Cards */}
-              {plans.map(plan => (
-                <div 
-                  key={plan.id}
-                  className="group relative bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:border-indigo-200 hover:shadow-md transition-all"
-                >
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <span className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter ${
-                        plan.status === 'Active' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
-                      }`}>
-                        {plan.status}
-                      </span>
-                      <h4 className="font-bold text-slate-800 mt-2 text-base line-clamp-1">{plan.name}</h4>
-                      <p className="text-[10px] text-slate-400 font-medium">Updated: {new Date(plan.createdAt).toLocaleDateString()}</p>
-                    </div>
-                    <button 
-                      onClick={() => onDeletePlan(plan.id)}
-                      className="p-2 text-slate-300 hover:text-red-500 transition-colors bg-slate-50 rounded-lg hover:bg-red-50"
-                      title={t.delete}
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
-                    </button>
-                  </div>
-
-                  <div className="flex items-center gap-2 mb-4">
-                     <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                        <div className="h-full bg-indigo-500 w-[65%]"></div>
-                     </div>
-                     <span className="text-[10px] font-bold text-slate-400">65% Complete</span>
-                  </div>
-
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex gap-2">
-                      <div className="flex flex-col items-center px-2 py-1 bg-slate-50 rounded border border-slate-100 min-w-[40px]">
-                        <span className="text-[10px] font-black text-slate-900 leading-none">{plan.hazards.length}</span>
-                        <span className="text-[8px] font-bold text-slate-400 uppercase">Hazards</span>
-                      </div>
-                      <div className="flex flex-col items-center px-2 py-1 bg-slate-50 rounded border border-slate-100 min-w-[40px]">
-                        <span className="text-[10px] font-black text-slate-900 leading-none">{plan.ccps.length}</span>
-                        <span className="text-[8px] font-bold text-slate-400 uppercase">CCPs</span>
-                      </div>
-                    </div>
-                    <button 
-                      onClick={() => onSelectPlan(plan.id)}
-                      className="flex items-center gap-1.5 bg-slate-900 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-indigo-600 transition-all shadow-sm active:scale-95"
-                    >
-                      Select Plan
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
+        <div className="lg:col-span-2">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="font-bold text-slate-800 text-lg">My HACCP Systems</h3>
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">{plans.length} Total</span>
           </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Create New Card */}
+            <button 
+              onClick={onCreatePlan}
+              className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50 hover:bg-white hover:border-indigo-400 hover:shadow-md transition-all group min-h-[140px]"
+            >
+              <div className="bg-white p-3 rounded-full shadow-sm text-slate-400 group-hover:text-indigo-600 mb-3 transition-colors">
+                <ICONS.Plus />
+              </div>
+              <span className="font-bold text-slate-500 group-hover:text-slate-800 transition-colors">{t.newPlanName}</span>
+            </button>
 
-          {/* History Section */}
-          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-            <h3 className="font-bold text-slate-800 text-lg mb-6 flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>
-              {t.history}
-            </h3>
-            <div className="space-y-4">
-              {plans.length === 0 ? (
-                <p className="text-sm text-slate-400 italic">No historical data available.</p>
-              ) : (
-                plans.slice(0, 5).map(plan => (
-                  <div key={`hist-${plan.id}`} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
-                    <div className="flex items-center gap-3">
-                      <div className="bg-white p-2 rounded-lg text-slate-400">
-                        <ICONS.Clipboard />
-                      </div>
-                      <div>
-                        <p className="text-sm font-bold text-slate-800">{plan.name}</p>
-                        <p className="text-[10px] text-slate-400">Archived on {new Date(plan.createdAt).toLocaleDateString()}</p>
-                      </div>
-                    </div>
-                    <button className="text-[10px] font-black text-indigo-600 uppercase hover:underline">Restore</button>
+            {/* Plan Cards */}
+            {plans.map(plan => (
+              <div 
+                key={plan.id}
+                className="group relative bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:border-indigo-200 hover:shadow-md transition-all"
+              >
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <span className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter ${
+                      plan.status === 'Active' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+                    }`}>
+                      {plan.status}
+                    </span>
+                    <h4 className="font-bold text-slate-800 mt-2 text-base line-clamp-1">{plan.name}</h4>
+                    <p className="text-[10px] text-slate-400 font-medium">Updated: {new Date(plan.createdAt).toLocaleDateString()}</p>
                   </div>
-                ))
-              )}
-            </div>
+                  <button 
+                    onClick={() => onDeletePlan(plan.id)}
+                    className="p-2 text-slate-300 hover:text-red-500 transition-colors bg-slate-50 rounded-lg hover:bg-red-50"
+                    title={t.delete}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-2 mb-4">
+                   <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                      <div className="h-full bg-indigo-500 w-[65%]"></div>
+                   </div>
+                   <span className="text-[10px] font-bold text-slate-400">65% Complete</span>
+                </div>
+
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex gap-2">
+                    <div className="flex flex-col items-center px-2 py-1 bg-slate-50 rounded border border-slate-100 min-w-[40px]">
+                      <span className="text-[10px] font-black text-slate-900 leading-none">{plan.hazards.length}</span>
+                      <span className="text-[8px] font-bold text-slate-400 uppercase">Hazards</span>
+                    </div>
+                    <div className="flex flex-col items-center px-2 py-1 bg-slate-50 rounded border border-slate-100 min-w-[40px]">
+                      <span className="text-[10px] font-black text-slate-900 leading-none">{plan.ccps.length}</span>
+                      <span className="text-[8px] font-bold text-slate-400 uppercase">CCPs</span>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => onSelectPlan(plan.id)}
+                    className="flex items-center gap-1.5 bg-slate-900 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-indigo-600 transition-all shadow-sm active:scale-95"
+                  >
+                    Select Plan
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>

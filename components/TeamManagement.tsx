@@ -48,12 +48,10 @@ const TeamManagement: React.FC<TeamManagementProps> = ({ plan, onUpdatePlan }) =
             className="rounded-lg border-slate-200 text-sm"
             value={newMember.responsibility}
             onChange={e => setNewMember({ ...newMember, responsibility: e.target.value })}
-            onKeyDown={e => e.key === 'Enter' && addMember()}
           />
           <button 
             onClick={addMember}
-            disabled={!newMember.name || !newMember.role}
-            className="bg-indigo-600 text-white rounded-lg px-4 py-2 text-sm font-bold hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="bg-indigo-600 text-white rounded-lg px-4 py-2 text-sm font-bold hover:bg-indigo-700 transition-colors"
           >
             Add Member
           </button>
